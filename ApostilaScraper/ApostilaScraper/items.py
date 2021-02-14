@@ -42,11 +42,14 @@ def definir_ano_inicio_e_fim(desc: str) -> int:
         #Dezembro de 2020
         anoStr = desc.replace('\xa0', ' ').split(' ')[-1]
         return int(anoStr)
-            
+
+def add_jw_prefix_to_href(href:str) -> str:
+    return f'jw.org{href}'
+
 class ApostilaItems(scrapy.Item):
     
 
-    href = scrapy.Field(output_processor=TakeFirst())
+    href = scrapy.Field(input_processor= MapCompose(add_jw_prefix_to_href), output_processor=TakeFirst())
     descricao = scrapy.Field(input_processor= MapCompose(remover_quebra_linhas), output_processor= TakeFirst())
     mes_inicio = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, definir_mes_inicio), output_processor= TakeFirst())
     mes_fim = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, definir_mes_fim), output_processor= TakeFirst())
@@ -54,21 +57,46 @@ class ApostilaItems(scrapy.Item):
     ano_fim = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, definir_ano_inicio_e_fim), output_processor= TakeFirst())
     programas_semana = scrapy.Field()
 
+def get_titulo_de_descricao_com_duracao(desc: str) -> str:
+    # Joias espirituais: (10 min)
+    return desc.split(':')[0].replace('“', '').upper()
+
+def get_duracao_de_descricao_com_duracao(desc: str) -> str:
+    # Joias espirituais: (10 min)
+    sem_paranteses = desc.replace('(', '').replace(')', '')
+    return sem_paranteses.split(': ')[1].upper()
+
+def get_duracao_de_descricao_com_duracao_mais_texto_base(desc:str) -> str:
+    # Leitura da Bíblia: (4 min ou menos) Núm. 28:11-31 (Melhore lição 5)
+    sem_paranteses = desc.split(')')[0].split('(')[1]
+    return sem_paranteses
+
+def get_lista_filha_as_string(lista_filha: str) -> str:
+    
+    items = lista_filha.replace('\xa0', '').replace('\r\r', '\n')
+    return items
+
 class ProgramaSemanaItems(scrapy.Item):
 
-    semana_referencia = scrapy.Field()
-    leitura_semana = scrapy.Field()
-    cantico_inicial = scrapy.Field()
+    semana_referencia = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas), output_processor= TakeFirst())
+    leitura_semana = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas), output_processor= TakeFirst())
+    cantico_inicial = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas), output_processor= TakeFirst())
+    
     #Tesouros da Palavra de Deus
-    tpd_titulo = scrapy.Field()
-    tpd_href = scrapy.Field()
-    tpd_duracao = scrapy.Field()
+    tpd_titulo = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_titulo_de_descricao_com_duracao), output_processor= TakeFirst())
+    tpd_href = scrapy.Field(input_processor= MapCompose(remove_tags, add_jw_prefix_to_href), output_processor= TakeFirst())
+    tpd_duracao = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_duracao_de_descricao_com_duracao), output_processor= TakeFirst())
 
-    tpd_leitura_duracao = scrapy.Field()
-    tpd_leitura_titulo = scrapy.Field()
-    tpd_leitura_href = scrapy.Field()
-    tpd_leitura_licao_melhore_titulo = scrapy.Field()
-    tpd_leitura_licao_melhore_href = scrapy.Field()
+    tpd_joias_titulo = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_titulo_de_descricao_com_duracao), output_processor= TakeFirst())
+    tpd_joias_duracao = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_duracao_de_descricao_com_duracao), output_processor= TakeFirst())
+    tpd_joias_descricao = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_lista_filha_as_string), output_processor= TakeFirst())
+
+    tpd_leitura_duracao = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_duracao_de_descricao_com_duracao_mais_texto_base), output_processor= TakeFirst())
+    tpd_leitura_titulo = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_titulo_de_descricao_com_duracao), output_processor= TakeFirst())
+    tpd_leitura_texto_base = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas), output_processor= TakeFirst())
+    tpd_leitura_href = scrapy.Field(input_processor= MapCompose(remove_tags, add_jw_prefix_to_href), output_processor= TakeFirst())
+    tpd_leitura_licao_melhore_titulo = scrapy.Field(input_processor= MapCompose(remove_tags, remover_quebra_linhas, get_titulo_de_descricao_com_duracao), output_processor= TakeFirst())
+    tpd_leitura_licao_melhore_href = scrapy.Field(input_processor= MapCompose(remove_tags, add_jw_prefix_to_href), output_processor= TakeFirst())
 
     #Faça seu melhor no ministério
     fmm_design_1_titulo = scrapy.Field()
